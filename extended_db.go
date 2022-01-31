@@ -18,7 +18,11 @@ type ExtendedDB struct {
 }
 
 func (ExtendedDB) log(message string) {
-	log.Printf("extendedgorm: extendeddb: %v", message)
+	log.Printf("extendedgorm: extendeddb: %v\n", message)
+}
+
+func (ExtendedDB) panic(message string) {
+	log.Panicf("extendedgorm: extendeddb: %v\n", message)
 }
 
 func (ExtendedDB) error(err error) error {
@@ -71,7 +75,7 @@ func (extendedDB *ExtendedDB) Connect(name string) (err error) {
 		password := getParameterFromEnvironment("PASSWORD")
 
 		if errorsCount != 0 {
-			extendedDB.log("unable to get all information to connect to extendedDB please read previous log")
+			extendedDB.panic("unable to get all information to connect to extendedDB please read previous log")
 		}
 
 		dsn = fmt.Sprintf(
