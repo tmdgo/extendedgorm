@@ -21,8 +21,12 @@ func (ExtendedDB) log(message string) {
 	log.Printf("extendedgorm: extendeddb: %v\n", message)
 }
 
-func (ExtendedDB) panic(message string) {
-	log.Panicf("extendedgorm: extendeddb: %v\n", message)
+func (ExtendedDB) panic(err error) {
+	log.Panicf("extendedgorm: extendeddb: %v", err.Error())
+}
+
+func (ExtendedDB) panicf(format string, a ...interface{}) {
+	log.Panicf("extendedgorm: extendeddb: %v\n", fmt.Sprintf(format, a...))
 }
 
 func (ExtendedDB) error(err error) error {
@@ -75,7 +79,7 @@ func (extendedDB *ExtendedDB) Connect(name string) (err error) {
 		password := getParameterFromEnvironment("PASSWORD")
 
 		if errorsCount != 0 {
-			extendedDB.panic("unable to get all information to connect to extendedDB please read previous log")
+			extendedDB.panicf("unable to get all information to connect to extendedDB please read previous log")
 		}
 
 		dsn = fmt.Sprintf(
@@ -103,7 +107,19 @@ func (extendedDB *ExtendedDB) Connect(name string) (err error) {
 	connection, err := gorm.Open(dialector, &gorm.Config{})
 
 	if err != nil {
-		log.Panicln(err)
+		extendedDB.panic(err)
+	}
+
+	goDB, err := extendedDB.GormDB.DB()
+
+	if err != nil {
+		extendedDB.panic(err)
+	}
+
+	err = goDB.Ping()
+
+	if err != nil {
+		extendedDB.panic(err)
 	}
 
 	extendedDB.connectionName = name
