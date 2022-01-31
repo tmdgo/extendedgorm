@@ -21,8 +21,8 @@ func (ExtendedDB) log(message string) {
 	log.Printf("extendedgorm: extendeddb: %v\n", message)
 }
 
-func (ExtendedDB) panic(err error) {
-	log.Panicf("extendedgorm: extendeddb: %v", err.Error())
+func (ExtendedDB) panic(message string, err error) {
+	log.Panicf("extendedgorm: extendeddb: %v - error: %v", message, err.Error())
 }
 
 func (ExtendedDB) panicf(format string, a ...interface{}) {
@@ -39,13 +39,15 @@ func (ExtendedDB) errorf(format string, a ...interface{}) (err error) {
 }
 
 func (extendedDB *ExtendedDB) Connect(name string) (err error) {
-	getDsnFromEnvironment := func(connectionName string) (extendedDBType, dsn string) {
-		envVarPattern := "EXTENDEDDB_%v_%v"
+	extendedDB.connectionName = name
+
+	getDsnFromEnvironment := func() (extendedDBType, dsn string) {
+		envVarPattern := "EXTENDEDDB_" + extendedDB.connectionName + "_%v"
 
 		errorsCount := 0
 
 		getParameterFromEnvironment := func(name string) (value string) {
-			envVarName := fmt.Sprintf(envVarPattern, connectionName, name)
+			envVarName := fmt.Sprintf(envVarPattern, name)
 			value, err := variables.Get(envVarName)
 			if err != nil {
 				errorsCount++
@@ -58,7 +60,7 @@ func (extendedDB *ExtendedDB) Connect(name string) (err error) {
 		}
 
 		getIntParameterFromEnvironment := func(name string) (value int64) {
-			envVarName := fmt.Sprintf(envVarPattern, connectionName, name)
+			envVarName := fmt.Sprintf(envVarPattern, name)
 			value, _ = variables.GetInt64(envVarName)
 			if err != nil {
 				errorsCount++
@@ -95,7 +97,7 @@ func (extendedDB *ExtendedDB) Connect(name string) (err error) {
 		return
 	}
 
-	dsn, extendedDBType := getDsnFromEnvironment(name)
+	dsn, extendedDBType := getDsnFromEnvironment()
 
 	var dialector gorm.Dialector
 
@@ -104,26 +106,23 @@ func (extendedDB *ExtendedDB) Connect(name string) (err error) {
 		dialector = postgres.Open(dsn)
 	}
 
-	connection, err := gorm.Open(dialector, &gorm.Config{})
+	extendedDB.GormDB, err = gorm.Open(dialector, &gorm.Config{})
 
 	if err != nil {
-		extendedDB.panic(err)
+		extendedDB.panic("unable to connect to database please verify the extendeddb enviroment variables and database configuration for this application", err)
 	}
 
 	goDB, err := extendedDB.GormDB.DB()
 
 	if err != nil {
-		extendedDB.panic(err)
+		extendedDB.panic("unable to connect to database please verify the extendeddb enviroment variables and database configuration for this application", err)
 	}
 
 	err = goDB.Ping()
 
 	if err != nil {
-		extendedDB.panic(err)
+		extendedDB.panic("unable to connect to database please verify the extendeddb enviroment variables and database configuration for this application", err)
 	}
-
-	extendedDB.connectionName = name
-	extendedDB.GormDB = connection
 	return
 }
 
