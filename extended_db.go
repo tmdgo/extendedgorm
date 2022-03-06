@@ -38,6 +38,14 @@ func (ExtendedDB) errorf(format string, a ...interface{}) (err error) {
 	return
 }
 
+func (extendedDB *ExtendedDB) connectionTest() (err error) {
+	err = extendedDB.GormDB.Exec("SELECT 'value1' as field1, 'value2' as field2").Error
+	if err != nil {
+		extendedDB.panic("unable to connect to database please verify the extendeddb enviroment variables and database configuration for this application", err)
+	}
+	return
+}
+
 func (extendedDB *ExtendedDB) Connect(name string) (err error) {
 	extendedDB.connectionName = name
 
@@ -74,7 +82,7 @@ func (extendedDB *ExtendedDB) Connect(name string) (err error) {
 
 		extendedDBType = getParameterFromEnvironment("TYPE")
 		host := getParameterFromEnvironment("HOST")
-		port := getIntParameterFromEnvironment("POSTGRES_PORT")
+		port := getIntParameterFromEnvironment("PORT")
 		sslMode := getParameterFromEnvironment("SSL_MODE")
 		extendedDBName := getParameterFromEnvironment("NAME")
 		user := getParameterFromEnvironment("USER")
@@ -112,17 +120,11 @@ func (extendedDB *ExtendedDB) Connect(name string) (err error) {
 		extendedDB.panic("unable to connect to database please verify the extendeddb enviroment variables and database configuration for this application", err)
 	}
 
-	goDB, err := extendedDB.GormDB.DB()
-
+	err = extendedDB.connectionTest()
 	if err != nil {
-		extendedDB.panic("unable to connect to database please verify the extendeddb enviroment variables and database configuration for this application", err)
+		return
 	}
 
-	err = goDB.Ping()
-
-	if err != nil {
-		extendedDB.panic("unable to connect to database please verify the extendeddb enviroment variables and database configuration for this application", err)
-	}
 	return
 }
 
