@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"strings"
 
+	"github.com/tmdgo/environment/variables"
 	"github.com/tmdgo/reflection/fields"
 	"github.com/tmdgo/reflection/interfaces"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -57,72 +57,65 @@ func (extendedDB *ExtendedDB) connectionTest() (err error) {
 func (extendedDB *ExtendedDB) Connect(name string) (err error) {
 	extendedDB.connectionName = name
 
-	// getDsnFromEnvironment := func() (extendedDBType, dsn string) {
-	// 	envVarPattern := "EXTENDEDDB_" + extendedDB.connectionName + "_%v"
+	getDsnFromEnvironment := func() (extendedDBType, dsn string) {
+		envVarPattern := "EXTENDEDDB_" + extendedDB.connectionName + "_%v"
 
-	// 	errorsCount := 0
+		errorsCount := 0
 
-	// 	getParameterFromEnvironment := func(name string) (value string) {
-	// 		envVarName := fmt.Sprintf(envVarPattern, name)
-	// 		value, err := variables.Get(envVarName)
-	// 		if err != nil {
-	// 			errorsCount++
-	// 			log.Println(err)
-	// 		} else if value == "" {
-	// 			errorsCount++
-	// 			extendedDB.log(fmt.Sprintf("please set the %v environment variable\n", envVarName))
-	// 		}
-	// 		return
-	// 	}
+		getParameterFromEnvironment := func(name string) (value string) {
+			envVarName := fmt.Sprintf(envVarPattern, name)
+			value, err := variables.Get(envVarName)
+			if err != nil {
+				errorsCount++
+				log.Println(err)
+			} else if value == "" {
+				errorsCount++
+				extendedDB.log(fmt.Sprintf("please set the %v environment variable\n", envVarName))
+			}
+			return
+		}
 
-	// 	getIntParameterFromEnvironment := func(name string) (value int64) {
-	// 		envVarName := fmt.Sprintf(envVarPattern, name)
-	// 		value, _ = variables.GetInt64(envVarName)
-	// 		if err != nil {
-	// 			errorsCount++
-	// 			log.Println(err)
-	// 		} else if value == 0 {
-	// 			errorsCount++
-	// 			extendedDB.log(fmt.Sprintf("please set the %v environment variable\n", envVarName))
-	// 		}
-	// 		return
-	// 	}
+		getIntParameterFromEnvironment := func(name string) (value int64) {
+			envVarName := fmt.Sprintf(envVarPattern, name)
+			value, _ = variables.GetInt64(envVarName)
+			if err != nil {
+				errorsCount++
+				log.Println(err)
+			} else if value == 0 {
+				errorsCount++
+				extendedDB.log(fmt.Sprintf("please set the %v environment variable\n", envVarName))
+			}
+			return
+		}
 
-	// 	extendedDBType = getParameterFromEnvironment("TYPE")
-	// 	host := getParameterFromEnvironment("HOST")
-	// 	port := getIntParameterFromEnvironment("PORT")
-	// 	sslMode := getParameterFromEnvironment("SSL_MODE")
-	// 	extendedDBName := getParameterFromEnvironment("NAME")
-	// 	user := getParameterFromEnvironment("USER")
-	// 	password := getParameterFromEnvironment("PASSWORD")
+		extendedDBType = getParameterFromEnvironment("TYPE")
+		host := getParameterFromEnvironment("HOST")
+		port := getIntParameterFromEnvironment("PORT")
+		sslMode := getParameterFromEnvironment("SSL_MODE")
+		extendedDBName := getParameterFromEnvironment("NAME")
+		user := getParameterFromEnvironment("USER")
+		password := getParameterFromEnvironment("PASSWORD")
 
-	// 	if errorsCount != 0 {
-	// 		extendedDB.panicf("unable to get all information to connect to extendedDB please read previous log")
-	// 	}
+		if errorsCount != 0 {
+			extendedDB.panicf("unable to get all information to connect to extendedDB please read previous log")
+		}
 
-	// 	dsn = fmt.Sprintf(
-	// 		"host=%v port=%v sslmode=%v dbname=%v user=%v password=%v",
-	// 		host,
-	// 		port,
-	// 		sslMode,
-	// 		extendedDBName,
-	// 		user,
-	// 		password,
-	// 	)
+		dsn = fmt.Sprintf(
+			"host=%v port=%v sslmode=%v dbname=%v user=%v password=%v",
+			host,
+			port,
+			sslMode,
+			extendedDBName,
+			user,
+			password,
+		)
 
-	// 	return
-	// }
+		return
+	}
 
-	// dsn, extendedDBType := getDsnFromEnvironment()
+	_, dsn := getDsnFromEnvironment()
 
-	// var dialector gorm.Dialector
-
-	// switch extendedDBType {
-	// case "postgres":
-	// 	dialector = postgres.Open(dsn)
-	// }
-
-	extendedDB.GormDB, err = gorm.Open(sqlite.Open(fmt.Sprintf("extendeddb-%v.db", strings.ToLower(extendedDB.connectionName)), &gorm.Config{}))
+	extendedDB.GormDB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	if err != nil {
 		extendedDB.panic("unable to connect to database please verify the extendeddb enviroment variables and database configuration for this application", err)
