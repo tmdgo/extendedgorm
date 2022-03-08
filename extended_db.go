@@ -184,7 +184,7 @@ func (extendedDB *ExtendedDB) DeleteByID(model interface{}, id uint) (err error)
 }
 
 func (extendedDB *ExtendedDB) SelectByID(model interface{}, id uint) (err error) {
-	err = extendedDB.GormDB.First(model, 10).Error
+	err = extendedDB.GormDB.First(model, id).Error
 	if err != nil {
 		err = extendedDB.error(err)
 	}
